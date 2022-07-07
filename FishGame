@@ -1,0 +1,305 @@
+#	Imports
+
+import random
+from math import floor
+from tkinter import *
+
+
+
+#	Player info
+
+Player_name = "Tanvir Salehin"
+
+money = 0
+Total_storage = 100
+total_fish_stored = 0
+
+fish_stored = {
+	"cod" : 0,
+	"salmon" : 0,
+	"catfish" : 0,
+	"tilapia" : 0,
+	"hilsha" : 0
+}
+
+current_fishing_equipment = "Wooden Rod"
+current_fishing_spot = "Local Pond"
+
+
+#	Game info
+
+Fishes = ["cod", "salmon", "catfish", "tilapia", "hilsha"]
+
+Fishing_spots_list = [
+	"Local Pond",
+	"Local Lake",
+	"Small River",
+	"Big Lake",
+	"Big River"
+]
+
+Fishing_spots_dict = {
+	"Local Pond" : {"Available spot fishes" : (1, 2), "Spot catching limit" : (5, 2)},
+	"Local Lake" : {"Available spot fishes" : (1, 2, 3), "Spot catching limit" : (10, 5, 2)},
+	"Small River" : {"Available spot fishes" : (2, 3, 4), "Spot catching limit" : (13, 7, 3)},
+	"Big Lake" : {"Available spot fishes" : (1, 2, 3, 4), "Spot catching limit" : (35, 21, 14, 7)},
+	"Big River" : {"Available spot fishes" : (1, 2, 3, 4, 5), "Spot catching limit" : (62, 36, 23, 12, 2)}
+}
+
+Fishing_Equipment = ["Wooden Rod", "Plastic Rod", "Advanced Plastic Rod"]
+
+Boats = ["Wooden Raft", "Wooden Boat", "Boat"]
+
+
+
+
+#	Prices
+Fish_Prices = {
+	"cod" : 2,
+	"salmon" : 7,
+	"catfish" : 20,
+	"tilapia" : 65,
+	"hilsha" : 150
+}
+
+
+
+#	Definitions
+
+
+
+# It basically creates chances for the arguments sent as ints.
+def probablity(*args):
+	# Adding 0 as the first element (zero-th elemnt) and the last element as the sum 
+	temp = random.randint(1, sum(args))
+	temp2 = list(args)
+
+	for i in range(len(temp2) - 1):
+		for j in range(len(temp2) - i - 1):
+			temp2[j + i + 1] += args[i]
+
+	temp2.insert(0, 0)
+	args = tuple(temp2)
+
+
+	
+	for i in range(len(args) - 1):
+		if args[i] < temp <= args[i + 1]:
+			return i
+
+
+
+# The most basic function, used for catching fish
+def catch():
+	global total_fish_stored
+	global fish_stored
+
+	# This is to randomize the fish catching and apply probablities
+	def fish_amount_caught(Available_Fishes, Fishing_Limit):
+		# fish_type_probablities is the chance of getting that fish at all. 100 means it is guaranteed. 50 means there is half chance.
+		if len(Available_Fishes) == 5:
+			fish_type_probablities = [100, 85, 50, 25, 10]
+		elif len(Available_Fishes) == 4:
+			fish_type_probablities = [100, 80, 40, 10]
+		elif len(Available_Fishes) == 3:
+			fish_type_probablities = [100, 40, 10]
+		elif len(Available_Fishes) == 2:
+			fish_type_probablities = [100, 20]
+
+		# This bit is for removing a fish from possible catching list if the probablity is not satisfied.
+		for fish, prob in zip(Available_Fishes, fish_type_probablities):
+			if probablity(prob, 100 - prob):
+				Fishing_Limit.pop(Available_Fishes.index(fish))
+				Available_Fishes.remove(fish)
+
+
+		Fish_caught = {}
+		for fish in Available_Fishes:
+			Fish_caught[fish] = 0
+
+		# This bit distributes fishes as per their probablities dividing it in 3 portions and assigning probablities to each.
+		for fish, limit in zip(Available_Fishes, Fishing_Limit):
+			temp = limit / 3
+			Possible_Catches = (floor(temp), floor(temp * 2))
+			temp2 = probablity(50, 35, 15)
+			if temp2 == 0:
+				final_fish_caught = random.randint(0, Possible_Catches[0])
+			if temp2 == 1:
+				final_fish_caught = random.randint(Possible_Catches[0], Possible_Catches[1])
+			if temp2 == 2:
+				final_fish_caught = random.randint(Possible_Catches[1], limit)
+
+			Fish_caught[fish] = final_fish_caught
+
+
+		del_keys = []
+		for key in Fish_caught:
+			if Fish_caught[key] == 0:
+				del_keys.append(key)
+		for key in del_keys:
+			del Fish_caught[key]
+
+
+		return Fish_caught
+
+
+	# Selecting the fish to be caught and the limit
+
+	Available_Fishes = []
+	Fishing_Limit = []
+
+	for i, j in zip(Fishing_spots_dict[current_fishing_spot]["Available spot fishes"], Fishing_spots_dict[current_fishing_spot]["Spot catching limit"]):
+		Available_Fishes.append(Fishes[i - 1])
+		Fishing_Limit.append(j)
+
+	Fish_caught = fish_amount_caught(Available_Fishes, Fishing_Limit)
+
+	for key in Fish_caught:
+		total_fish_stored += Fish_caught[key]
+		fish_stored[key] += Fish_caught[key]
+
+
+
+
+
+
+
+# You know it... SELL
+def sell():
+	global money
+	for fkey, skey in zip(fish_stored, Fish_Prices):
+		money += fish_stored[fkey] * Fish_Prices[skey]
+		fish_stored[fkey] = 0
+
+
+
+
+
+
+
+
+#		THE TKINTER STUFF
+#========================================
+
+
+main = Tk()
+main.title("FishGame")
+
+
+# Defenetions
+def tk_catch():
+	catch()
+	
+	global cod_value
+	global salmon_value
+	global catfish_value
+	global tilapia_value
+	global hilsha_value
+
+	cod_value.destroy()
+	salmon_value.destroy()
+	catfish_value.destroy()
+	tilapia_value.destroy()
+	hilsha_value.destroy()
+
+	cod_value = Label(main, text=fish_stored["cod"])
+	salmon_value = Label(main, text=fish_stored["salmon"])
+	catfish_value = Label(main, text=fish_stored["catfish"])
+	tilapia_value = Label(main, text=fish_stored["tilapia"])
+	hilsha_value = Label(main, text=fish_stored["hilsha"])
+
+	cod_value.grid(row=1, column=1)
+	salmon_value.grid(row=2, column=1)
+	catfish_value.grid(row=3, column=1)
+	tilapia_value.grid(row=4, column=1)
+	hilsha_value.grid(row=5, column=1)
+
+
+def tk_sell():
+	sell()
+	
+	global cod_value
+	global salmon_value
+	global catfish_value
+	global tilapia_value
+	global hilsha_value
+
+	cod_value.destroy()
+	salmon_value.destroy()
+	catfish_value.destroy()
+	tilapia_value.destroy()
+	hilsha_value.destroy()
+
+	money_value = Label(main, text=money)
+	cod_value = Label(main, text=fish_stored["cod"])
+	salmon_value = Label(main, text=fish_stored["salmon"])
+	catfish_value = Label(main, text=fish_stored["catfish"])
+	tilapia_value = Label(main, text=fish_stored["tilapia"])
+	hilsha_value = Label(main, text=fish_stored["hilsha"])
+
+	money_value.grid(row=0, column=1)
+	cod_value.grid(row=1, column=1)
+	salmon_value.grid(row=2, column=1)
+	catfish_value.grid(row=3, column=1)
+	tilapia_value.grid(row=4, column=1)
+	hilsha_value.grid(row=5, column=1)
+
+
+
+# Labels
+
+money_label = Label(main, text="Money: ")
+cod_label = Label(main, text="Cod:")
+salmon_label = Label(main, text="Salmon:")
+catfish_label = Label(main, text="Catfish:")
+tilapia_label = Label(main, text="Tilapia:")
+hilsha_label = Label(main, text="Hilsha:")
+
+money_value = Label(main, text=money)
+cod_value = Label(main, text=fish_stored["cod"])
+salmon_value = Label(main, text=fish_stored["salmon"])
+catfish_value = Label(main, text=fish_stored["catfish"])
+tilapia_value = Label(main, text=fish_stored["tilapia"])
+hilsha_value = Label(main, text=fish_stored["hilsha"])
+
+
+# Buttons
+
+Catch_btn = Button(main, text="Catch", command=tk_catch)
+Sell_btn = Button(main, text="Sell", command=tk_sell)
+
+
+# Grid / Placing
+
+money_label.grid(row=0, column=0)
+cod_label.grid(row=1, column=0)
+salmon_label.grid(row=2, column=0)
+catfish_label.grid(row=3, column=0)
+tilapia_label.grid(row=4, column=0)
+hilsha_label.grid(row=5, column=0)
+
+money_value.grid(row=0, column=1)
+cod_value.grid(row=1, column=1)
+salmon_value.grid(row=2, column=1)
+catfish_value.grid(row=3, column=1)
+tilapia_value.grid(row=4, column=1)
+hilsha_value.grid(row=5, column=1)
+
+
+Catch_btn.grid(row=6, column=0, pady=10, padx=10)
+Sell_btn.grid(row=6, column=1, pady=10, padx=10)
+
+
+main.mainloop()
+
+
+
+
+
+
+
+
+
+
+
+
